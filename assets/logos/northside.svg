@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">Northside Neighbors mark</title>
+  <desc id="desc">A blue circular neighborhood mark with two simplified people.</desc>
+  <circle cx="80" cy="80" r="72" fill="#1e4f84"/>
+  <circle cx="80" cy="80" r="60" fill="none" stroke="#9ed2c6" stroke-width="3"/>
+  <circle cx="62" cy="67" r="13" fill="#fff"/>
+  <circle cx="98" cy="67" r="13" fill="#fff"/>
+  <path d="M38 115c2-20 12-31 24-31s22 11 24 31M74 115c2-20 12-31 24-31s22 11 24 31" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+  <path d="M80 38v14M72 45h16" stroke="#9ed2c6" stroke-width="4" stroke-linecap="round"/>
+</svg>

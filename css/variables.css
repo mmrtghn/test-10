@@ -1,0 +1,35 @@
+:root {
+  --color-primary: #14345b;
+  --color-primary-deep: #0c2543;
+  --color-primary-soft: #e9f0f8;
+  --color-accent: #e9b96e;
+  --color-background: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-border: #dce3ec;
+  --color-border-strong: #c8d2df;
+  --color-text: #172b43;
+  --color-muted: #6b7b8f;
+  --color-success: #2e9d62;
+  --color-success-soft: #eaf7ef;
+  --color-danger: #c44949;
+  --color-danger-soft: #fdf0f0;
+  --color-shadow: rgba(20, 52, 91, .10);
+  --font-body: "Avenir Next", Avenir, "Segoe UI", system-ui, sans-serif;
+  --font-display: "Arial Rounded MT Bold", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --focus-ring: 0 0 0 4px rgba(34, 104, 169, .20);
+  --card-width: 720px;
+}

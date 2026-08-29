@@ -1,0 +1,178 @@
+{
+  "communities": {
+    "community-a": {
+      "name": "TESTVERSION",
+      "logo": "assets/logos/community.svg",
+      "brandMark": "T",
+      "webhook": "https://discord.com/api/webhooks/1542531560731967569/M7uWFIoeh9-u_cepuMxRXVqep2PRW-1wprjRKtoC4q65qtoSxlLT94ou01myyyXBfiLg",
+      "reviewFields": [
+        {
+          "id": "name",
+          "label": "TEST VERSION",
+          "enabled": true
+        },
+        {
+          "id": "contact",
+          "label": "TEST VERSION",
+          "enabled": true
+        },
+        {
+          "id": "communityCenter",
+          "label": "TEST VERSION",
+          "enabled": true
+        },
+        {
+          "id": "experienceFile",
+          "label": "TEST VERSION",
+          "enabled": true
+        },
+        {
+          "id": "animalPictures",
+          "label": "TEST VERSION",
+          "enabled": false
+        }
+      ],
+      "steps": {
+        "personal": {
+          "eyebrow": "TEST VERSION",
+          "title": "TEST VERSION",
+          "description": "TEST VERSION"
+        },
+        "center": {
+          "eyebrow": "TEST VERSION",
+          "title": "TEST VERSION",
+          "description": "TEST VERSION"
+        },
+        "story": {
+          "eyebrow": "TEST VERSION",
+          "title": "TEST VERSION",
+          "description": "TEST VERSION"
+        },
+        "experience": {
+          "eyebrow": "TEST VERSION",
+          "title": "TEST VERSION",
+          "description": "TEST VERSION"
+        },
+        "verification": {
+          "eyebrow": "TEST VERSION",
+          "title": "TEST VERSION",
+          "description": "TEST VERSION"
+        },
+        "math": {
+          "eyebrow": "TEST VERSION",
+          "title": "TEST VERSION",
+          "description": "TEST VERSION"
+        },
+        "date": {
+          "eyebrow": "TEST VERSION",
+          "title": "TEST VERSION",
+          "description": "TEST VERSION"
+        },
+        "animals": {
+          "eyebrow": "TEST VERSION",
+          "title": "TEST VERSION",
+          "description": "TEST VERSION"
+        },
+        "review": {
+          "eyebrow": "TEST VERSION",
+          "title": "TEST VERSION",
+          "description": "TEST VERSION"
+        },
+        "success": {
+          "eyebrow": "TEST VERSION",
+          "title": "TEST VERSION",
+          "description": "TEST VERSION"
+        },
+        "next": {
+          "eyebrow": "TEST VERSION",
+          "title": "TEST VERSION",
+          "description": "TEST VERSION"
+        }
+      },
+      "instructions": {
+        "checklist": [
+          "TEST VERSION",
+          "TEST VERSION",
+          "TEST VERSION"
+        ],
+        "checkboxes": [
+          {
+            "id": "member",
+            "label": "TEST VERSION",
+            "required": true
+          },
+          {
+            "id": "agreement-2",
+            "label": "TEST VERSION",
+            "required": true
+          },
+          {
+            "id": "agreement-3",
+            "label": "TEST VERSION",
+            "required": true
+          }
+        ]
+      },
+      "captcha": {
+        "mathIntro": "TEST VERSION",
+        "mathHint": "TEST VERSION",
+        "dateIntro": "TEST VERSION",
+        "dateHint": "TEST VERSION",
+        "animalIntro": "TEST VERSION",
+        "animalBullets": [
+          "TEST VERSION",
+          "TEST VERSION",
+          "TEST VERSION",
+          "TEST VERSION"
+        ]
+      },
+      "footer": "TEST VERSION",
+      "form": {
+        "addressLabel": "TEST VERSION",
+        "addressHint": "TEST VERSION",
+        "letterLabel": "TEST VERSION",
+        "letterPlaceholder": "TEST VERSION",
+        "experienceLabel": "TEST VERSION",
+        "experiencePlaceholder": "TEST VERSION",
+        "referralLabel": "TEST VERSION",
+        "referralPlaceholder": "TEST VERSION"
+      },
+      "animals": [
+        {
+          "id": "test1",
+          "name": "TEST VERSION",
+          "title": "TEST VERSION"
+        },
+        {
+          "id": "test2",
+          "name": "TEST VERSION",
+          "title": "TEST VERSION"
+        },
+        {
+          "id": "test3",
+          "name": "TEST VERSION",
+          "title": "TEST VERSION"
+        }
+      ],
+      "allowedUploads": {
+        "application": {
+          "accept": ".pdf,.png,.jpg,.jpeg",
+          "label": "PDF or image",
+          "maxBytes": 8000000
+        },
+        "animal": {
+          "accept": ".jpg,.jpeg,.png,.webp",
+          "label": "PNG, JPG, or WEBP image",
+          "maxBytes": 10000000
+        }
+      },
+      "buttons": {
+        "continue": "Continue",
+        "next": "Next step",
+        "back": "Back",
+        "complete": "Complete application",
+        "remove": "Remove file"
+      }
+    }
+  }
+}

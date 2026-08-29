@@ -1,0 +1,36 @@
+@media (max-width: 700px) {
+  .site-header { width: calc(100% - 36px); padding-top: 20px; }
+  .header-status { display: none; }
+  .main-content { padding: 12px 12px 34px; }
+  .application-card { border-radius: 17px; }
+  .progress-area { padding: 21px 21px 19px; }
+  .progress-line { min-width: 2px; flex: 1 1 auto; width: auto; margin: 0 3px; }
+  .progress-node { width: 22px; height: 22px; font-size: 9px; }
+  .progress-node.is-complete::after { font-size: 11px; }
+  .step-region { padding: 28px 23px 28px; }
+  .step-header { margin-bottom: 22px; }
+  .form-grid { grid-template-columns: 1fr; gap: 14px; }
+  .field.full { grid-column: auto; }
+  .step-actions { margin-top: 25px; }
+  .button { min-height: 48px; }
+  .animal-layout { grid-template-columns: 1fr; gap: 18px; }
+  .animal-copy .step-title { font-size: 25px; }
+}
+
+@media (max-width: 430px) {
+  .brand-logo-wrap { width: 44px; height: 44px; border-radius: 13px; }
+  .brand-name { font-size: 14px; }
+  .brand-subtitle { font-size: 11px; }
+  .progress-meta { font-size: 10px; }
+  .progress-line { min-width: 1px; margin: 0 2px; }
+  .step-title { font-size: 25px; }
+  .step-description { font-size: 13px; }
+  .step-actions { align-items: stretch; flex-direction: column-reverse; }
+  .step-actions .button { width: 100%; }
+  .verification-panel, .challenge-box { padding: 16px; }
+  .state-card { padding: 38px 24px; }
+}
+
+@media (min-width: 701px) {
+  .progress-area .progress-indicator { max-width: 620px; }
+}

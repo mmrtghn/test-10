@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Build the protected community application configuration and private server settings.">
+  <title>Community configuration builder</title>
+  <link rel="stylesheet" href="builder.css">
+
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">C</span><div><strong>Community configuration builder</strong><small>Generate the files used by the application</small></div></div>
+      <div class="privacy-badge">Private admin tool</div>
+    </header>
+    <main>
+      <section class="hero"><h1>Configure every part of the application</h1><p>Edit community branding, wording, verification prompts, uploads, agreements, review rows, and buttons in one place. Per-community Discord webhooks are stored in the JSON configuration alongside the other settings.</p></section>
+      <div class="notice"><strong>Protect the configuration.</strong> Each community’s webhook is included in <code>config/communities.json</code> so the server can deliver notifications for the selected community. Use this builder locally or behind admin access, protect the generated JSON and server settings, and never publicly serve the configuration file.</div>
+      <div id="message" role="status" aria-live="polite"></div>
+      <div class="toolbar"><div><h2>Communities</h2><p class="hint">Select a community to edit its complete configuration.</p></div><div class="toolbar-actions"><input id="new-community-id" aria-label="New community ID" placeholder="new-community-id"><button class="button secondary" id="add-community" type="button">Add community</button></div></div>
+      <div class="layout">
+        <aside class="sidebar"><h2>Community list</h2><nav id="community-list" aria-label="Communities"></nav></aside>
+        <section class="editor" id="editor"></section>
+      </div>
+    </main>
+    <footer class="footer">The JSON output includes community webhooks and must be protected. The .env output contains only server settings.</footer>
+  </div>
+  <script src="builder.js" defer></script>
+</body>
+</html>

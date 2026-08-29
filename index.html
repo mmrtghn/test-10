@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Apply to volunteer with your local community.">
+  <title>Community application</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="site-header" aria-label="Community branding">
+      <a class="brand" href="./" aria-label="Community application home">
+        <span class="brand-logo-wrap"><img id="brand-logo" class="brand-logo" src="" alt=""></span>
+        <span class="brand-copy"><span class="brand-name" id="brand-name">Community</span><span class="brand-subtitle">Volunteer application</span></span>
+      </a>
+      <div class="header-status"><span class="status-dot" aria-hidden="true"></span><span>Secure application</span></div>
+    </header>
+
+    <main class="main-content">
+      <div id="app-error" class="state-card error-card" hidden role="alert">
+        <span class="state-icon state-icon-error" aria-hidden="true">!</span>
+        <p class="eyebrow">Unable to continue</p>
+        <h1 id="app-error-title">Community not found</h1>
+        <p id="app-error-message">Please check your community link and try again.</p>
+      </div>
+
+      <section id="application-card" class="application-card" hidden aria-labelledby="page-heading">
+        <div class="card-branding" aria-hidden="true">
+          <span class="watermark watermark-one"></span><span class="watermark watermark-two"></span>
+        </div>
+        <div class="progress-area">
+          <div class="progress-meta"><span id="progress-label">Step 1 of 9</span><span id="progress-percent">11%</span></div>
+          <div id="progress-indicator" class="progress-indicator" aria-label="Application progress"></div>
+        </div>
+        <div id="step-region" class="step-region" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer id="site-footer" class="site-footer">Applications are reviewed by the community team.</footer>
+  </div>
+  <noscript><div class="noscript-message">Please enable JavaScript to complete this application.</div></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

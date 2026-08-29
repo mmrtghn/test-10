@@ -1,0 +1,19 @@
+{
+  "name": "community-application",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A secure, JSON-driven community volunteer application wizard.",
+  "scripts": {
+    "start": "node server/index.js",
+    "check": "node --check server/index.js && node --check js/app.js && node --check js/captcha.js && node --check js/config.js && node --check js/state.js && node --check js/ui.js && node --check js/validation.js && node --check config-builder/builder.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
