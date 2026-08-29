@@ -4,7 +4,6 @@
       "name": "TESTVERSION",
       "logo": "assets/logos/community.svg",
       "brandMark": "T",
-      "webhook": "https://discord.com/api/webhooks/1542531560731967569/M7uWFIoeh9-u_cepuMxRXVqep2PRW-1wprjRKtoC4q65qtoSxlLT94ou01myyyXBfiLg",
       "reviewFields": [
         {
           "id": "name",

@@ -1,25 +1,8 @@
 import { loadCommunityConfiguration, getUploadSettings } from "./config.js";
-import {
-  applicationState,
-  clearErrors,
-  resetChallengeError,
-  setErrors,
-  updateNestedState
-} from "./state.js";
-import {
-  createSession,
-  issueChallenge,
-  submitApplication,
-  verifyChallenge
-} from "./captcha.js";
+import { applicationState, clearErrors, setErrors, updateNestedState } from "./state.js";
+import { submitApplication } from "./captcha.js";
 import { validateFile, validateStep } from "./validation.js";
-import {
-  renderProgress,
-  renderStep,
-  setBranding,
-  showApplicationError,
-  showApplicationShell
-} from "./ui.js";
+import { renderProgress, renderStep, setBranding, showApplicationError, showApplicationShell } from "./ui.js";
 
 const stepRegion = document.querySelector("#step-region");
 
@@ -31,16 +14,6 @@ async function startApplication() {
     applicationState.community = community;
     setBranding(community);
     showApplicationShell();
-    renderCurrentStep();
-
-    let session;
-    try {
-      session = await createSession(community.id);
-    } catch (error) {
-      throw new Error(`The secure application service is unavailable. ${error.message}`);
-    }
-    applicationState.sessionId = session.sessionId;
-    applicationState.challenges = session.challenges || {};
     renderCurrentStep();
   } catch (error) {
     showApplicationError(error);
@@ -68,11 +41,7 @@ stepRegion.addEventListener("input", (event) => {
   const input = event.target;
   const path = input.dataset.statePath;
   if (!path) return;
-  if (path === "challengeAnswers.math") {
-    input.value = input.value.replace(/\D/g, "").slice(0, 9);
-  }
   updateNestedState(path, input.value);
-  if (path.startsWith("challengeAnswers.")) resetChallengeError();
   clearFieldError(input);
 });
 
@@ -98,7 +67,7 @@ stepRegion.addEventListener("click", async (event) => {
   if (action === "back") await goBack();
   if (action === "next") await handleNext();
   if (action === "remove-file") removeFile(actionElement.dataset.filePath);
-  if (action === "show-next") await transitionToStep(11, "Opening the final details for you…");
+  if (action === "show-next") await transitionToStep(9, "Opening the final details for you…");
 });
 
 stepRegion.addEventListener("dragover", (event) => {
@@ -123,29 +92,17 @@ stepRegion.addEventListener("drop", (event) => {
 
 async function handleNext() {
   const step = applicationState.currentStep;
-
-  if (step === 6 && !applicationState.verification.mathCompleted) {
-    await verifyCurrentChallenge("math");
-    return;
-  }
-  if (step === 7 && !applicationState.verification.dateCompleted) {
-    await verifyCurrentChallenge("date");
-    return;
-  }
-
   const errors = validateStep(step, applicationState.community, applicationState);
   if (Object.keys(errors).length) {
     setErrors(errors);
     renderCurrentStep();
     return;
   }
-
   clearErrors();
-  if (step === 9) {
+  if (step === 7) {
     await sendApplication();
     return;
   }
-
   await transitionToStep(step + 1, loadingMessageFor(step + 1));
 }
 
@@ -162,9 +119,6 @@ async function transitionToStep(step, message) {
   renderCurrentStep();
 
   await wait(260);
-  if (step === 6) await ensureChallenge("math");
-  if (step === 7) await ensureChallenge("date");
-
   applicationState.isLoading = false;
   applicationState.loadingMessage = "";
   renderCurrentStep();
@@ -175,11 +129,9 @@ function loadingMessageFor(step) {
     2: "Bringing up the community details…",
     3: "Making space for your story…",
     4: "Preparing the supporting file upload…",
-    5: "Preparing the verification checklist…",
-    6: "Loading your secure manual-review step…",
-    7: "Loading the date review step…",
-    8: "Preparing the animal picture check…",
-    9: "Putting your application summary together…"
+    5: "Preparing the agreement checklist…",
+    6: "Preparing the animal picture check…",
+    7: "Putting your application summary together…"
   };
   return messages[step] || "Preparing the next step…";
 }
@@ -188,83 +140,20 @@ function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function ensureChallenge(type) {
-  if (applicationState.challenges[type]) return;
-  try {
-    const result = await issueChallenge(applicationState.sessionId, type);
-    applicationState.challenges[type] = result.challenge;
-  } catch (error) {
-    setErrors({ challenge: error.message });
-  }
-}
-
-async function refreshChallenge(type) {
-  applicationState.challenges[type] = null;
-  applicationState.challengeAnswers[type] = "";
-  await ensureChallenge(type);
-}
-
-async function verifyCurrentChallenge(type) {
-  const challenge = applicationState.challenges[type];
-  const answer = applicationState.challengeAnswers[type].trim();
-  const answerErrors = validateStep(applicationState.currentStep, applicationState.community, applicationState);
-  if (Object.keys(answerErrors).length) {
-    setErrors(answerErrors);
-    renderCurrentStep();
-    return;
-  }
-  if (!answer || !challenge) {
-    setErrors({ challenge: "Enter an answer before continuing." });
-    renderCurrentStep();
-    return;
-  }
-
-  applicationState.isSubmitting = true;
-  renderCurrentStep();
-  try {
-    await verifyChallenge({
-      sessionId: applicationState.sessionId,
-      type,
-      challengeId: challenge.id,
-      answer
-    });
-    applicationState.verification[`${type}Completed`] = true;
-    applicationState.challenges[type] = null;
-    applicationState.isSubmitting = false;
-    clearErrors();
-    await transitionToStep(applicationState.currentStep + 1, "Verification recorded. Preparing the next step…");
-  } catch (error) {
-    applicationState.isSubmitting = false;
-    if (/expired|no longer valid|already been used/i.test(error.message)) {
-      await refreshChallenge(type);
-    }
-    setErrors({ challenge: error.message });
-    renderCurrentStep();
-  }
-}
-
 async function sendApplication() {
   applicationState.isSubmitting = true;
   renderCurrentStep();
   try {
-    const result = await submitApplication({
-      sessionId: applicationState.sessionId,
-      communityId: applicationState.community.id,
-      state: applicationState
-    });
+    const result = await submitApplication({ communityId: applicationState.community.id, state: applicationState });
     applicationState.applicationId = result.applicationId || "";
     applicationState.isSubmitting = false;
     clearErrors();
-    applicationState.currentStep = 10;
+    applicationState.currentStep = 8;
     renderCurrentStep();
   } catch (error) {
     applicationState.isSubmitting = false;
     const details = Object.values(error.fields || {}).filter(Boolean);
-    setErrors({
-      form: details.length
-        ? `Some application details need attention: ${details.join(" ")}`
-        : error.message
-    });
+    setErrors({ form: details.length ? `Some application details need attention: ${details.join(" ")}` : error.message });
     renderCurrentStep();
   }
 }

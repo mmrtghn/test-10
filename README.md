@@ -1,59 +1,53 @@
 # Community Application
 
-A reusable, responsive community-volunteer application wizard with JSON-driven branding and copy, server-validated manual-review responses, secure uploads, and server-side Discord delivery.
+A responsive community volunteer application wizard with server-side configuration, validated uploads, and Discord delivery.
 
-## Run locally
+## Local setup
 
-Use Node.js 18 or newer. From this project folder, run:
+Use Node.js 18 or newer and a PostgreSQL database.
 
-```sh
+```bash
 npm install
 cp .env.example .env
 npm start
 ```
 
-Then open `http://localhost:3000/?community=community-a`. The browser cannot load the app correctly through `file://`; use the Node server so the JSON configuration and API endpoints are available.
+Set `DATABASE_URL`, `CONFIG_ENCRYPTION_KEY`, `MASTER_ADMIN_PASSWORD_HASH`, and `ADMIN_SESSION_SECRET` in `.env`. On first start, the server creates its configuration table and imports `config/communities.json` once. The legacy file is never served to browsers, and any legacy webhook is moved into the encrypted shared-webhook field. Treat any webhook previously committed to source control as compromised and rotate it.
 
-Discord delivery is optional for local evaluation. If the selected community’s `webhook` value is blank, a valid application is accepted and logged as a development no-op. When configured, each community webhook must be an HTTPS Discord webhook URL and is used only for submissions to that community. Protect the configuration file and keep it out of publicly served content.
+Open an application with `/?community=community-a`. Open `/config-builder/` to access the password-protected master administration page.
 
-## Community customization
+## Master administration
 
-Community-specific settings belong in `config/communities.json`. Add a community object, give it a unique key, and select it with `?community=your-community-key`. The `steps` object controls the eyebrow, title, and description for all nine application steps plus the success and next-step screens. The configuration also controls branding, instructions, agreements, manual-review prompts, animal requests, accepted uploads, footer text, form labels, placeholders, buttons, and the final review rows.
+The admin page lists active and inactive communities and lets an administrator add, edit, activate, deactivate, and remove communities. The complete nested application copy and upload configuration is saved durably in PostgreSQL with revision checks to prevent overwriting another administrator’s changes.
 
-The `reviewFields` array controls the rows shown on the final review screen. Each row has a supported `id` (`name`, `contact`, `communityCenter`, `experienceFile`, or `animalPictures`), an editable `label`, and an `enabled` boolean. Unsupported or duplicate IDs are rejected at server startup. The `config-builder/index.html` editor exposes these controls in the Step 9 card.
+All communities use one encrypted shared Discord webhook. Administrators can replace or clear it from the admin page; the existing value is never returned or displayed. The public configuration endpoint returns only the selected active community’s UI settings.
 
-Use `config-builder/index.html` as the separate admin-facing editor. Its cards follow the application’s step order, making each screen’s copy and related settings easier to find. It loads the current configuration, lets you add or remove communities, and generates protected JSON configuration content plus `.env` content containing only `PORT` and `TRUST_PROXY`. The JSON output includes each community’s webhook because the server selects delivery settings from the selected community. Use the builder locally or behind appropriate admin access, protect both generated outputs, and never publicly serve the JSON configuration.
+## Application flow
 
-Do not place private values in public JSON, client code, CSS, HTML, or assets. Because Discord webhooks are intentionally configured in JSON for per-community routing, `config/communities.json` is now a protected server-side configuration file rather than a browser-public asset. The builder is intended for local use or deployment behind appropriate admin access; it is not an application-user page.
+Applicants provide personal details, community-center information, an application story, one experience file, required agreements, requested animal pictures, and a final review. Applicant sessions, session IDs, challenge tokens, rate limits, cooldowns, duplicate detection, fingerprints, and process-local applicant security state are not used. The server still validates all submitted fields, agreements, upload names, extensions, MIME types, signatures, and sizes.
 
-## Manual-review responses
+Discord embeds include both the resolved community ID and display name. Uploaded files are sent as validated multipart attachments. Webhook failures return a generic delivery error without exposing configuration or stack traces.
 
-The nine-digit screen accepts any response containing exactly nine digits, such as `123456789`. Its input is masked while the applicant types. There is no equation, expected result, or mathematical correctness check. The date screen accepts any valid `YYYY-MM-DD` calendar date, including past, present, and future dates. Neither response is compared with today’s date. The server records both accepted responses against the secure session and forwards them to Discord with explicit `Manual review` labels.
+## Vercel deployment
 
-The application session itself has no automatic timeout. Math and date challenge tokens remain session-bound, single-use, and valid for five minutes. If a token expires while its screen is open, the application requests a fresh token without discarding the overall application session. Client-side checks improve usability, but the server independently validates response formats and final submitted values.
+Set the four required secrets and `DATABASE_URL` as Vercel environment variables. `api/index.js` imports an Express app without starting a listener, and PostgreSQL provides persistence across serverless instances. Keep the database connection and encryption key private. The static boundary denies configuration, server, library, migration, package, and environment paths.
+
+The default upload boundary is 40 MB total, with a 10 MB per-file limit. Adjust the limits only with awareness of the hosting provider’s request-size limit.
 
 ## Project structure
 
-`index.html` is the accessible application shell. `css/` contains design tokens, reusable component styles, and responsive rules. `js/` contains configuration loading, centralized state, rendering, client-side validation, manual-review requests, uploads, and flow orchestration. `server/index.js` contains the Express API, in-memory session and challenge stores, rate limiting, independent validation, upload inspection, duplicate protection, and Discord formatting. `config-builder/` contains the separate configuration editor, with its HTML shell, stylesheet, and browser JavaScript.
-
-Frontend validation is for usability only. The server independently validates every field, required agreement, verification state, file count, size, filename, extension, declared MIME type, and file signature.
-
-## Security behavior
-
-Application sessions remain active until submission or server restart. Math and date challenge tokens are issued server-side, expire after five minutes, have attempt limits, and are single-use. They are associated with the session and a coarse IP/user-agent fingerprint. The API rate-limits requests, applies a successful-submission cooldown, detects submissions completed implausibly quickly, and rejects reuse of a submitted session. Duplicate community/email combinations are blocked for 24 hours.
-
-The configuration is loaded server-side and must be protected. Discord receives sanitized text metadata plus validated upload files as multipart attachments; it does not receive unsanitized form values or any file content in logs or error responses. The webhook URL is read only from the selected community’s `webhook` configuration value. Error responses never return webhook details or stack traces.
-
-## Console source-map notice
-
-The project does not contain `installHook.js`, `installHook.js.map`, a `sourceMappingURL` reference, or a URL for `<anonymous code>`. Firefox errors naming those resources are normally emitted by an injected browser developer-tools extension rather than this application. Confirm by opening the application in a private window with extensions disabled, or disable the relevant developer-tools extension. Adding a fake map route to the application would hide an external tooling warning rather than correct an application defect.
-
-## Production notes
-
-Run behind HTTPS and a correctly configured reverse proxy. Set `TRUST_PROXY=true` only if the proxy overwrites untrusted forwarding headers. Protect `config/communities.json`, including its webhook values, from public serving and source-control exposure; if the application and API share a host, configure static serving so the configuration directory is not directly reachable. Replace the in-memory session, rate-limit, and duplicate stores with Redis or another shared, atomic store before running multiple server instances. Because sessions no longer expire automatically, use a durable store with an operational retention policy in production to avoid unbounded memory growth. Add durable application storage if Discord alone is not an acceptable system of record. Configure monitoring, backups, retention, privacy notices, and deletion procedures appropriate to the information collected.
-
-The animal upload check validates file properties and completion, not image semantics. If the production threat model requires proving that uploaded pictures contain requested animals, add a server-side image-classification or moderated verification service; never trust a browser-only assertion.
+- `index.html`, `css/`, and `js/` contain the public applicant interface.
+- `server/index.js` contains the import-safe Express app, admin APIs, application validation, upload inspection, and Discord formatting.
+- `lib/config-store.js` contains PostgreSQL persistence and webhook encryption.
+- `lib/config-validation.js` contains shared community-schema validation.
+- `config-builder/` contains the authenticated master admin interface.
+- `config/communities.json` is a one-time migration seed and is not publicly served.
 
 ## Checks
 
-Run `npm run check` to syntax-check the server and browser modules, including the configuration builder. Test the full workflow with valid and invalid communities, missing fields, invalid and oversized files, mismatched file signatures, expired and reused challenges, duplicate submissions, webhook failure, keyboard-only navigation, and desktop/mobile viewport sizes before deployment.
+```bash
+npm run check
+npm test
+```
+
+Test locally with a configured PostgreSQL database before deployment. Do not commit `.env`, password hashes, encryption keys, webhook URLs, or migration exports.

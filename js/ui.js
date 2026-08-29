@@ -88,12 +88,10 @@ export function renderStep(step, community, state) {
     case 3: return renderStoryStep(community, state);
     case 4: return renderExperienceUploadStep(community, state);
     case 5: return renderVerificationIntroStep(community, state);
-    case 6: return renderMathStep(community, state);
-    case 7: return renderDateStep(community, state);
-    case 8: return renderAnimalStep(community, state);
-    case 9: return renderReviewStep(community, state);
-    case 10: return renderSuccessStep(community, state);
-    case 11: return renderNextStep(community);
+    case 6: return renderAnimalStep(community, state);
+    case 7: return renderReviewStep(community, state);
+    case 8: return renderSuccessStep(community, state);
+    case 9: return renderNextStep(community);
     default: return renderPersonalStep(community, state);
   }
 }
@@ -224,72 +222,11 @@ function renderVerificationIntroStep(community, state) {
   });
 }
 
-function renderMathStep(community, state) {
-  const copy = getStepCopy(community, "math", {
-    eyebrow: community.captcha.eyebrow,
-    title: "Enter a nine-digit number",
-    description: "Enter any nine-digit response. The community team will review it manually."
-  });
-  const challenge = state.challenges.math;
-  const prompt = community.captcha.mathIntro || "Enter any nine-digit number for manual review.";
-
-  return challengeStep({
-    ...copy,
-    illustration: calculatorIcon(),
-    body: challenge ? `<p class="challenge-question">${escapeHtml(prompt)}</p>
-      <p class="challenge-hint">${escapeHtml(community.captcha.mathHint || "Use nine digits; no calculation is required.")}</p>
-      ${textField({ id: "math-answer", label: "Nine-digit response", path: "challengeAnswers.math", value: state.challengeAnswers.math, type: "password", inputMode: "numeric", maxLength: 9, autocomplete: "off", required: true, error: state.errors.challenge })}` : state.verification.mathCompleted
-      ? '<p class="challenge-question">Nine-digit response recorded for manual review.</p>'
-      : loadingMarkup("Loading your verification…"),
-    actions: actionButtons({ back: community.buttons.back, next: state.verification.mathCompleted ? community.buttons.next : community.buttons.continue, disabled: !challenge && !state.verification.mathCompleted })
-  });
-}
-
-function renderDateStep(community, state) {
-  const copy = getStepCopy(community, "date", {
-    eyebrow: community.captcha.eyebrow,
-    title: "Enter a date",
-    description: "Enter any valid date. The community team will review the response manually; it is not compared with today’s date."
-  });
-  const challenge = state.challenges.date;
-  const prompt = community.captcha.dateIntro || "Enter any date for manual review.";
-
-  return challengeStep({
-    ...copy,
-    illustration: calendarIcon(),
-    body: challenge ? `<p class="challenge-question">${escapeHtml(prompt)}</p>
-      <p class="challenge-hint">${escapeHtml(community.captcha.dateHint || "Any past, present, or future date is accepted.")}</p>
-      ${textField({ id: "date-answer", label: "Date response", path: "challengeAnswers.date", value: state.challengeAnswers.date, placeholder: "YYYY-MM-DD", inputMode: "numeric", autocomplete: "off", required: true, error: state.errors.challenge })}` : state.verification.dateCompleted
-      ? '<p class="challenge-question">Date response recorded for manual review.</p>'
-      : loadingMarkup("Loading your verification…"),
-    actions: actionButtons({ back: community.buttons.back, next: state.verification.dateCompleted ? community.buttons.next : community.buttons.continue, disabled: !challenge && !state.verification.dateCompleted })
-  });
-}
-
 function renderAnimalStep(community, state) {
-  const copy = getStepCopy(community, "animals", {
-    eyebrow: "A picture check",
-    title: "Show us the animals",
-    description: community.captcha.animalIntro
-  });
+  const copy = getStepCopy(community, "animals", { eyebrow: "A picture check", title: "Show us the animals", description: community.captcha.animalIntro });
   const settings = getUploadSettings(community, "animal");
-  const cards = community.animals.map((animal) => uploadField({
-    id: `animal-${animal.id}`,
-    inputId: `animal-file-${animal.id}`,
-    title: animal.title,
-    description: `Please upload ${animal.name}.`,
-    settings,
-    file: state.uploads.animals[animal.id],
-    path: `uploads.animals.${animal.id}`,
-    error: state.errors.animals?.[animal.id],
-    removeLabel: community.buttons.remove
-  })).join("");
-
-  return stepView({
-    ...copy,
-    content: `<div class="animal-layout"><div class="animal-copy"><ul class="check-list">${community.captcha.animalBullets.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div class="form-stack">${cards}</div></div>`,
-    actions: actionButtons({ back: community.buttons.back, next: community.buttons.next })
-  });
+  const cards = community.animals.map((animal) => uploadField({ id: `animal-${animal.id}`, inputId: `animal-file-${animal.id}`, title: animal.title, description: `Please upload ${animal.name}.`, settings, file: state.uploads.animals[animal.id], path: `uploads.animals.${animal.id}`, error: state.errors.animals?.[animal.id], removeLabel: community.buttons.remove })).join("");
+  return stepView({ ...copy, content: `<div class="animal-layout"><div class="animal-copy"><ul class="check-list">${community.captcha.animalBullets.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div class="form-stack">${cards}</div></div>`, actions: actionButtons({ back: community.buttons.back, next: community.buttons.next }) });
 }
 
 function renderReviewStep(community, state) {
@@ -354,11 +291,6 @@ function stepView({ eyebrow, title, description, content, actions, alert = "" })
   return `<div class="step-view"><header class="step-header"><p class="eyebrow">${escapeHtml(eyebrow)}</p><h1 class="step-title" id="page-heading">${escapeHtml(title)}</h1><p class="step-description">${escapeHtml(description)}</p></header>${alertMarkup}${content}${actions}</div>`;
 }
 
-function challengeStep({ eyebrow, title, description, illustration, body, actions, alert = "" }) {
-  const alertMarkup = alert ? `<div class="alert" role="alert"><span class="alert-icon" aria-hidden="true">!</span><span>${escapeHtml(alert)}</span></div>` : "";
-  return `<div class="step-view captcha-card"><header class="step-header centered"><div class="challenge-illustration" aria-hidden="true">${illustration}</div><p class="eyebrow">${escapeHtml(eyebrow)}</p><h1 class="step-title" id="page-heading">${escapeHtml(title)}</h1><p class="step-description">${escapeHtml(description)}</p></header>${alertMarkup}<div class="challenge-box">${body}</div>${actions}</div>`;
-}
-
 function textField({ id, label, optional = false, hint = "", path, value = "", type = "text", autocomplete = "", placeholder = "", required = false, full = false, inputMode = "", maxLength = 0, error = "" }) {
   const errorId = error ? `${id}-error` : "";
   const errorMarkup = error
@@ -405,10 +337,6 @@ function reviewRow(label, value) {
   return `<div class="upload-file"><span class="field-label">${escapeHtml(label)}</span><span class="upload-file-name">${escapeHtml(value || "Not provided")}</span></div>`;
 }
 
-function loadingMarkup(text) {
-  return `<p class="challenge-question"><span class="spinner" aria-hidden="true"></span> ${escapeHtml(text)}</p>`;
-}
-
 function formatBytes(bytes) {
   if (bytes >= 1_000_000) return `${Math.round(bytes / 1_000_000)} MB`;
   return `${Math.round(bytes / 1_000)} KB`;
@@ -416,14 +344,6 @@ function formatBytes(bytes) {
 
 function uploadIcon() {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5"/><path d="M5 13.5v4A2.5 2.5 0 0 0 7.5 20h9a2.5 2.5 0 0 0 2.5-2.5v-4"/></svg>`;
-}
-
-function calculatorIcon() {
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8 7h8M8 11h2m2 0h2m-4 4h2m2 0h2"/></svg>`;
-}
-
-function calendarIcon() {
-  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4m8-4v4M4 10h16M8 14h2m2 0h2m2 0h2m-8 3h2m2 0h2"/></svg>`;
 }
 
 function arrowIcon() {

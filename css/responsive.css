@@ -27,7 +27,7 @@
   .step-description { font-size: 13px; }
   .step-actions { align-items: stretch; flex-direction: column-reverse; }
   .step-actions .button { width: 100%; }
-  .verification-panel, .challenge-box { padding: 16px; }
+  .verification-panel { padding: 16px; }
   .state-card { padding: 38px 24px; }
 }
 

@@ -2,8 +2,6 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^[+\d][\d\s().-]{6,29}$/;
 const ZIP_PATTERN = /^[A-Za-z0-9][A-Za-z0-9\s-]{2,11}$/;
 
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
 export function validateStep(step, community, state) {
   switch (step) {
     case 1: return validatePersonal(state);
@@ -11,33 +9,9 @@ export function validateStep(step, community, state) {
     case 3: return validateStory(state);
     case 4: return state.uploads.experience ? {} : { experienceUpload: "Please attach a file before continuing." };
     case 5: return validateAgreements(community, state);
-    case 6: return validateMathAnswer(state.challengeAnswers.math);
-    case 7: return validateDateAnswer(state.challengeAnswers.date);
-    case 8: return validateAnimals(community, state);
+    case 6: return validateAnimals(community, state);
     default: return {};
   }
-}
-
-function validateMathAnswer(value) {
-  return /^\d{9}$/.test(String(value ?? "").trim())
-    ? {}
-    : { challenge: "Enter exactly nine digits for manual review." };
-}
-
-function validateDateAnswer(value) {
-  const answer = String(value ?? "").trim();
-  if (!DATE_PATTERN.test(answer)) return { challenge: "Enter a valid date for manual review." };
-  const [year, month, day] = answer.split("-").map(Number);
-  return isValidCalendarDate(year, month, day)
-    ? {}
-    : { challenge: "Enter a valid date for manual review." };
-}
-
-function isValidCalendarDate(year, month, day) {
-  if (month < 1 || month > 12 || day < 1) return false;
-  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
-  const daysInMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  return day <= daysInMonth[month - 1];
 }
 
 function validatePersonal(state) {
