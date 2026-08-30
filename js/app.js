@@ -1,7 +1,7 @@
 import { loadCommunityConfiguration, getUploadSettings } from "./config.js";
 import { applicationState, clearErrors, setErrors, updateNestedState } from "./state.js";
-import { submitApplication } from "./captcha.js";
 import { compressImage, isCompressibleImage } from "./image-compression.js";
+import { IMAGE_TOO_LARGE, IMAGE_TOO_LARGE_DETAIL, submitApplication } from "./captcha.js";
 import { validateFile, validateStep } from "./validation.js";
 import { renderProgress, renderStep, setBranding, showApplicationError, showApplicationShell } from "./ui.js";
 
@@ -146,16 +146,33 @@ async function sendApplication() {
   applicationState.isSubmitting = true;
   renderCurrentStep();
   try {
-    const result = await submitApplication({ communityId: applicationState.community.id, state: applicationState });
+    const result = await submitApplication({
+      communityId: applicationState.community.id,
+      state: applicationState,
+      onPreparing: (message) => {
+        applicationState.isLoading = true;
+        applicationState.loadingMessage = message;
+        renderCurrentStep();
+      }
+    });
     applicationState.applicationId = result.applicationId || "";
     applicationState.isSubmitting = false;
+    applicationState.isLoading = false;
+    applicationState.loadingMessage = "";
     clearErrors();
     applicationState.currentStep = 8;
     renderCurrentStep();
   } catch (error) {
     applicationState.isSubmitting = false;
+    applicationState.isLoading = false;
+    applicationState.loadingMessage = "";
     const details = Object.values(error.fields || {}).filter(Boolean);
-    setErrors({ form: details.length ? `Some application details need attention: ${details.join(" ")}` : error.message });
+    const message = error.image
+      ? `${IMAGE_TOO_LARGE}\n${IMAGE_TOO_LARGE_DETAIL}`
+      : details.length
+        ? `Some application details need attention: ${details.join(" ")}`
+        : error.message;
+    setErrors({ form: message });
     renderCurrentStep();
   }
 }
@@ -179,14 +196,23 @@ async function setFile(path, file) {
   applicationState.loadingMessage = isCompressibleImage(file) ? "Optimizing your image…" : "Preparing your file…";
   renderCurrentStep();
   try {
-    const processedFile = await compressImage(file);
+    const result = await compressImage(file, {
+      maxBytes: Math.min(settings.maxBytes, 3_000_000),
+      accepted: settings.accept
+    });
     if (operation !== uploadOperation) return;
+
+    if (result.failed && isCompressibleImage(file) && result.file.size > Math.min(settings.maxBytes, 3_000_000)) {
+      setUploadError(type, errorPath, `${IMAGE_TOO_LARGE}\n${IMAGE_TOO_LARGE_DETAIL}`);
+      return;
+    }
+
+    const processedFile = result.file;
     const error = validateFile(processedFile, settings);
     if (error) {
-      const message = isCompressibleImage(file) && processedFile.size > settings.maxBytes
-        ? `This image is still too large after compression. Choose an image under ${formatBytes(settings.maxBytes)}.`
-        : error;
-      setUploadError(type, errorPath, message);
+      setUploadError(type, errorPath, isCompressibleImage(file) && processedFile.size > settings.maxBytes
+        ? `${IMAGE_TOO_LARGE}\n${IMAGE_TOO_LARGE_DETAIL}`
+        : error);
       return;
     }
 

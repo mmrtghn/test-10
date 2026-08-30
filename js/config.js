@@ -9,5 +9,5 @@ export async function loadCommunityConfiguration() {
 }
 
 export function getUploadSettings(community, type) {
-  return community.allowedUploads?.[type] ?? { accept: ".png,.jpg,.jpeg,.webp,.pdf", label: "supported file", maxBytes: 8_000_000 };
+  return community.allowedUploads?.[type] ?? { accept: ".png,.jpg,.jpeg,.webp,.pdf", label: "supported file", maxBytes: 3_000_000 };
 }

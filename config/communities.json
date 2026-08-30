@@ -157,12 +157,12 @@
         "application": {
           "accept": ".pdf,.png,.jpg,.jpeg",
           "label": "PDF or image",
-          "maxBytes": 8000000
+          "maxBytes": 3000000
         },
         "animal": {
           "accept": ".jpg,.jpeg,.png,.webp",
           "label": "PNG, JPG, or WEBP image",
-          "maxBytes": 10000000
+          "maxBytes": 3000000
         }
       },
       "buttons": {

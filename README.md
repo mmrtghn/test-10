@@ -32,7 +32,7 @@ Discord embeds include both the resolved community ID and display name. Uploaded
 
 Set the four required secrets and `DATABASE_URL` as Vercel environment variables. `api/index.js` imports an Express app without starting a listener, and PostgreSQL provides persistence across serverless instances. Keep the database connection and encryption key private. The static boundary denies configuration, server, library, migration, package, and environment paths.
 
-The default upload boundary is 40 MB total, with a 10 MB per-file limit. Adjust the limits only with awareness of the hosting provider’s request-size limit.
+The effective upload policy is a 3 MB per-file limit and a 4 MB aggregate binary attachment target. The browser compresses supported images before constructing the multipart request; PDFs are not compressed. These limits intentionally leave headroom for multipart framing, JSON fields, and provider overhead. Vercel’s request-body limit is imposed by the selected plan and cannot be increased through `vercel.json`; verify the deployed plan before changing these values.
 
 ## Project structure
 
