@@ -177,7 +177,7 @@ function instructionsEditor(id, template) {
 
 function captchaEditor(id, template) {
   const prefix = `templates.${id}.captcha`;
-  return `<section><h3 class="section-label">Animal instructions</h3><div class="form-grid"><label class="field full"><span>Introduction</span><textarea data-path="${prefix}.animalIntro">${escapeHtml(template.captcha.animalIntro)}</textarea></label><label class="field full"><span>Bullet points</span><textarea data-path="${prefix}.animalBullets" data-array="true">${escapeHtml((template.captcha.animalBullets || []).join("\n"))}</textarea><small class="hint">One item per line.</small></label></div></section>`;
+  return `<section><h3 class="section-label">Animal instructions</h3><div class="form-grid"><label class="field full"><span>Applicant introduction</span><textarea data-path="${prefix}.animalIntro">${escapeHtml(template.captcha.animalIntro)}</textarea><small class="hint">Shown beneath the Animals step heading.</small></label><label class="field full"><span>Bullet points</span><textarea data-path="${prefix}.animalBullets" data-array="true">${escapeHtml((template.captcha.animalBullets || []).join("\n"))}</textarea><small class="hint">One item per line.</small></label></div></section>`;
 }
 
 function animalsEditor(id, template) {
@@ -213,7 +213,6 @@ function reorderControls(path, index, count) {
 function selectItem(event) {
   const button = event.target.closest("[data-select-community], [data-select-template]");
   if (!button) return;
-  if (!switchSelection()) return;
   if (button.dataset.selectCommunity) {
     state.mode = "community";
     state.selectedCommunity = button.dataset.selectCommunity;
@@ -322,20 +321,30 @@ function duplicateTemplate() {
 }
 
 function addCommunity() {
-  if (!switchSelection()) return;
   const id = prompt("New community ID");
   if (!id || !COMMUNITY_ID_PATTERN.test(id) || state.document.communities[id]) return message("Enter a unique valid community ID.", true);
-  const templateId = state.selectedTemplate || Object.keys(state.document.templates)[0];
-  if (!templateId) return message("Create a template first.", true);
+  const templateId = ensureTemplate();
   state.document.communities[id] = { name: "New community", logo: "assets/logos/harborview.svg", brandMark: "APP", footer: "Applications are reviewed by the community team.", theme: { accent: "#14345B" }, templateId, active: false };
   state.selectedCommunity = id;
+  state.selectedTemplate = templateId;
   state.mode = "community";
   state.dirty = true;
   render();
 }
 
+function ensureTemplate() {
+  const selected = state.document.templates[state.selectedTemplate]
+    ? state.selectedTemplate
+    : Object.keys(state.document.templates)[0];
+  if (selected) return selected;
+  let id = "starter-template";
+  let suffix = 2;
+  while (state.document.templates[id]) id = `starter-template-${suffix++}`;
+  state.document.templates[id] = defaultTemplate();
+  return id;
+}
+
 function addTemplate() {
-  if (!switchSelection()) return;
   const id = prompt("New template ID");
   if (!id || !COMMUNITY_ID_PATTERN.test(id) || state.document.templates[id]) return message("Enter a unique valid template ID.", true);
   state.document.templates[id] = defaultTemplate();
@@ -377,10 +386,8 @@ async function saveConfiguration() {
   } catch (error) {
     state.saving = false;
     if (error.status === 409) {
-      const draft = JSON.stringify(state.document, null, 2);
-      await load();
-      message("The server changed. Your draft was not saved; export the draft before reapplying it.", true);
-      download("configuration-draft.json", draft);
+      download("configuration-draft.json", JSON.stringify(state.document, null, 2));
+      message("The server changed. Your unsaved draft remains open and was downloaded for safekeeping.", true);
     } else showError(error);
   } finally { state.saving = false; render(); }
 }
@@ -421,14 +428,6 @@ function discardConfiguration() {
   render();
   clearConfigErrors();
   message("Unsaved changes discarded.");
-}
-
-function switchSelection() {
-  if (!state.dirty) return true;
-  if (!confirm("Discard unsaved changes?")) return false;
-  state.document = structuredClone(state.savedDocument);
-  state.dirty = false;
-  return true;
 }
 
 function emptyEditor(text) { return `<article class="card"><h2>${escapeHtml(text)}</h2></article>`; }

@@ -255,7 +255,8 @@ function renderVerificationIntroStep(community, state) {
 }
 
 function renderAnimalStep(community, state) {
-  const copy = getStepCopy(community, "animals", { eyebrow: "A picture check", title: "Show us the animals", description: community.captcha.animalIntro });
+  const copy = getStepCopy(community, "animals", { eyebrow: "A picture check", title: "Show us the animals", description: "" });
+  copy.description = community.captcha?.animalIntro || copy.description;
   const settings = getUploadSettings(community, "animal");
   const cards = community.animals.map((animal) => uploadField({ id: `animal-${animal.id}`, inputId: `animal-file-${animal.id}`, title: animal.title, description: `Please upload ${animal.name}.`, settings, file: state.uploads.animals[animal.id], path: `uploads.animals.${animal.id}`, error: state.errors.animals?.[animal.id], removeLabel: community.buttons.remove })).join("");
   return stepView({ ...copy, content: `<div class="animal-layout"><div class="animal-copy"><ul class="check-list">${community.captcha.animalBullets.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div><div class="form-stack">${cards}</div></div>`, actions: actionButtons({ back: community.buttons.back, next: community.buttons.next }) });

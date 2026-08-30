@@ -18,9 +18,11 @@ Open an application with `/?community=community-a`. Open `/config-builder/` to a
 
 ## Master administration
 
-The admin page lists active and inactive communities and lets an administrator add, edit, activate, deactivate, and remove communities. The complete nested application copy and upload configuration is saved durably in PostgreSQL with revision checks to prevent overwriting another administrator’s changes.
+The admin page separates community identity from reusable templates. Communities own their name, bundled SVG logo, footer, accent color, lifecycle state, and template assignment; templates own the fixed seven-step application copy, form copy, instructions, animal checks, upload settings, review fields, and buttons. Saving writes the complete configuration atomically with revision checks. A blank configuration can create its first inactive community and starter template together; selecting another community or template preserves the current draft until an administrator explicitly saves or discards it.
 
-All communities use one encrypted shared Discord webhook. Administrators can replace or clear it from the admin page; the existing value is never returned or displayed. The public configuration endpoint returns only the selected active community’s UI settings.
+All communities use one encrypted shared Discord webhook. Administrators can replace or clear it from the admin page; the existing value is never returned or displayed. The public configuration endpoint returns only the selected active community’s resolved UI settings.
+
+Legacy configuration migration is intentionally one-way. It normalizes legacy upload limits to the enforced 3 MB per-file maximum and reports safe migration warnings. Retired math/date challenge copy is removed because the fixed applicant workflow has no math/date state, renderer, validation, or submission contract. Canonical imports and writes reject retired or unknown fields.
 
 ## Application flow
 

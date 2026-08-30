@@ -1,10 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
+import { renderStep } from "../js/ui.js";
 import {
   CONFIG_SCHEMA_VERSION,
   createDefaultTemplate,
   composeCommunity,
+  extractLegacyWebhook,
   migrateConfiguration,
   validateConfigDocument
 } from "../lib/config-schema.js";
@@ -125,4 +127,83 @@ test("migration replaces the obsolete bundled logo path", () => {
     }
   };
   assert.equal(migrateConfiguration(legacy).communities.demo.logo, "assets/logos/harborview.svg");
+});
+
+test("legacy upload limits are normalized with field-scoped warnings", () => {
+  const template = createDefaultTemplate();
+  const warnings = [];
+  const legacy = {
+    communities: {
+      demo: {
+        ...documentWith().communities["community-a"],
+        steps: { ...template.steps, success: template.completion.success, next: template.completion.next, math: template.steps.personal },
+        form: template.form,
+        instructions: template.instructions,
+        captcha: { ...template.captcha, dateIntro: "Retired copy" },
+        animals: template.animals,
+        allowedUploads: {
+          application: { accept: ".PDF,.png,.exe", label: "Document", maxBytes: "3000000" },
+          animal: { accept: ".JPG,.webp", label: "Animal", maxBytes: 3_000_000.8 }
+        },
+        reviewFields: template.reviewFields,
+        buttons: template.buttons
+      }
+    }
+  };
+  const migrated = migrateConfiguration(legacy, { onWarning: (warning) => warnings.push(warning) });
+  assert.deepEqual(validateConfigDocument(migrated), []);
+  const uploads = migrated.templates["demo-template"].allowedUploads;
+  assert.deepEqual(uploads.application, { accept: ".pdf,.png", label: "Document", maxBytes: 3_000_000 });
+  assert.deepEqual(uploads.animal, { accept: ".jpg,.webp", label: "Animal", maxBytes: 3_000_000 });
+  assert.ok(warnings.some(({ path, code }) => path === "communities.demo.allowedUploads.application.maxBytes" && code === "migration.upload-size"));
+  assert.ok(warnings.some(({ path }) => path === "communities.demo.steps.math"));
+  assert.ok(warnings.some(({ path }) => path === "communities.demo.captcha.dateIntro"));
+});
+
+test("legacy invalid upload limits fall back to the hard limit", () => {
+  const template = createDefaultTemplate();
+  const legacy = {
+    communities: {
+      demo: {
+        ...documentWith().communities["community-a"],
+        steps: { ...template.steps, success: template.completion.success, next: template.completion.next },
+        form: template.form,
+        instructions: template.instructions,
+        captcha: template.captcha,
+        animals: template.animals,
+        allowedUploads: {
+          application: { accept: ".exe", label: "", maxBytes: "not-a-number" },
+          animal: { accept: ".png", label: "Animal", maxBytes: 9_000_000 }
+        },
+        reviewFields: template.reviewFields,
+        buttons: template.buttons
+      }
+    }
+  };
+  const migrated = migrateConfiguration(legacy);
+  const uploads = migrated.templates["demo-template"].allowedUploads;
+  assert.equal(uploads.application.maxBytes, 3_000_000);
+  assert.equal(uploads.animal.maxBytes, 3_000_000);
+  assert.equal(uploads.application.accept, ".pdf,.png,.jpg,.jpeg,.webp");
+});
+
+test("legacy webhook extraction supports wrapped and direct community maps", () => {
+  const wrapped = { communities: { demo: { webhook: "https://discord.com/api/webhooks/one" } } };
+  const direct = { demo: { webhook: "https://discord.com/api/webhooks/one" } };
+  assert.equal(extractLegacyWebhook(wrapped), "https://discord.com/api/webhooks/one");
+  assert.equal(extractLegacyWebhook(direct), "https://discord.com/api/webhooks/one");
+  assert.throws(() => extractLegacyWebhook({ communities: { one: { webhook: "one" }, two: { webhook: "two" } } }), /different webhooks/);
+});
+
+test("animal introduction is authoritative over generic Animals step copy", () => {
+  const community = composeCommunity(documentWith(), "community-a");
+  community.steps.animals.description = "Generic step description";
+  community.captcha.animalIntro = "Applicant-facing animal introduction";
+  const markup = renderStep(6, community, {
+    isLoading: false,
+    uploads: { animals: {} },
+    errors: { animals: {} }
+  });
+  assert.match(markup, /Applicant-facing animal introduction/);
+  assert.doesNotMatch(markup, /Generic step description/);
 });
