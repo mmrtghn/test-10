@@ -28,7 +28,7 @@ export function setBranding(community) {
   logo.alt = `${community.name} logo`;
   name.textContent = community.name;
   footer.textContent = community.footer;
-  document.title = `${community.name} volunteer application`;
+  document.title = `${community.name} application`;
 }
 
 export function renderProgress(currentStep) {
@@ -117,7 +117,7 @@ function renderLoadingStep(state) {
 
 function renderPersonalStep(community, state) {
   const copy = getStepCopy(community, "personal", {
-    eyebrow: community.role?.title || "Community volunteer",
+    eyebrow: community.role?.title || "Community application",
     title: community.role?.description || "Let’s get to know you",
     description: "Start with a few details so the community team knows who to contact."
   });

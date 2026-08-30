@@ -64,7 +64,7 @@ app.put("/api/admin/discord", requireAdmin, async (req, res, next) => {
 });
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_FILE, files: MAX_FILES, fields: 4, fieldSize: 32_000 } });
-app.post("/api/application", (req, res, next) => upload.any()(req, res, (error) => { if (error instanceof multer.MulterError) return sendError(res, 400, "The uploaded files could not be accepted."); if (error) return next(error); next(); }), async (req, res, next) => {
+app.post("/api/application", (req, res, next) => upload.any()(req, res, (error) => { if (error instanceof multer.MulterError) { if (error.code === "LIMIT_FILE_SIZE") return sendError(res, 400, "One of the uploaded files is too large. Choose a file under 10 MB."); if (error.code === "LIMIT_FILE_COUNT") return sendError(res, 400, "Too many files were uploaded."); return sendError(res, 400, "The uploaded files could not be accepted."); } if (error) return next(error); next(); }), async (req, res, next) => {
   try {
     const configuration = await readConfiguration();
     const communityId = cleanIdentifier(req.body?.communityId);

@@ -1,6 +1,6 @@
 # Community Application
 
-A responsive community volunteer application wizard with server-side configuration, validated uploads, and Discord delivery.
+A responsive community application wizard with server-side configuration, validated uploads, and Discord delivery.
 
 ## Local setup
 

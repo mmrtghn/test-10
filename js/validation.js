@@ -68,9 +68,9 @@ function validateAnimals(community, state) {
   return Object.keys(errors).length ? { animals: errors } : {};
 }
 
-export function validateFile(file, settings) {
+export function validateFile(file, settings, { skipSize = false } = {}) {
   if (!file) return "Choose a file before continuing.";
-  if (file.size > settings.maxBytes) return `This file is too large. Choose a file under ${formatBytes(settings.maxBytes)}.`;
+  if (!skipSize && file.size > settings.maxBytes) return `This file is too large. Choose a file under ${formatBytes(settings.maxBytes)}.`;
   const accepted = settings.accept.split(",").map((item) => item.trim().toLowerCase());
   const extension = `.${file.name.split(".").pop().toLowerCase()}`;
   if (!accepted.includes(extension)) return `Choose a ${settings.label} file.`;

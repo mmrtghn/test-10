@@ -1,6 +1,7 @@
 import { loadCommunityConfiguration, getUploadSettings } from "./config.js";
 import { applicationState, clearErrors, setErrors, updateNestedState } from "./state.js";
 import { submitApplication } from "./captcha.js";
+import { compressImage, isCompressibleImage } from "./image-compression.js";
 import { validateFile, validateStep } from "./validation.js";
 import { renderProgress, renderStep, setBranding, showApplicationError, showApplicationShell } from "./ui.js";
 
@@ -46,6 +47,7 @@ stepRegion.addEventListener("input", (event) => {
 });
 
 stepRegion.addEventListener("change", (event) => {
+  if (applicationState.isSubmitting || applicationState.isLoading) return;
   const input = event.target;
   if (input.matches("[data-agreement-id]")) {
     applicationState.agreements[input.dataset.agreementId] = input.checked;
@@ -72,7 +74,7 @@ stepRegion.addEventListener("click", async (event) => {
 
 stepRegion.addEventListener("dragover", (event) => {
   const target = event.target.closest("[data-drop-target]");
-  if (!target) return;
+  if (!target || applicationState.isSubmitting || applicationState.isLoading) return;
   event.preventDefault();
   target.classList.add("is-dragover");
 });
@@ -84,7 +86,7 @@ stepRegion.addEventListener("dragleave", (event) => {
 
 stepRegion.addEventListener("drop", (event) => {
   const target = event.target.closest("[data-drop-target]");
-  if (!target) return;
+  if (!target || applicationState.isSubmitting || applicationState.isLoading) return;
   event.preventDefault();
   target.classList.remove("is-dragover");
   setFile(target.dataset.dropTarget, event.dataTransfer.files?.[0]);
@@ -158,27 +160,60 @@ async function sendApplication() {
   }
 }
 
-function setFile(path, file) {
-  if (!file) return;
+let uploadOperation = 0;
+
+async function setFile(path, file) {
+  if (!file || applicationState.isSubmitting || applicationState.isLoading) return;
+  const operation = ++uploadOperation;
   const type = path.startsWith("uploads.animals.") ? "animal" : "application";
   const settings = getUploadSettings(applicationState.community, type);
-  const error = validateFile(file, settings);
-  if (error) {
-    setErrors(type === "animal" ? { animals: { [path.split(".").pop()]: error } } : { experienceUpload: error });
+  const errorPath = type === "animal" ? path.split(".").pop() : "experienceUpload";
+  const preliminaryError = validateFile(file, settings, { skipSize: true });
+  if (preliminaryError) {
+    setUploadError(type, errorPath, preliminaryError);
     renderCurrentStep();
     return;
   }
 
-  updateNestedState(path, file);
-  if (type === "animal") {
-    delete applicationState.errors.animals?.[path.split(".").pop()];
-  } else {
-    delete applicationState.errors.experienceUpload;
-  }
+  applicationState.isLoading = true;
+  applicationState.loadingMessage = isCompressibleImage(file) ? "Optimizing your image…" : "Preparing your file…";
   renderCurrentStep();
+  try {
+    const processedFile = await compressImage(file);
+    if (operation !== uploadOperation) return;
+    const error = validateFile(processedFile, settings);
+    if (error) {
+      const message = isCompressibleImage(file) && processedFile.size > settings.maxBytes
+        ? `This image is still too large after compression. Choose an image under ${formatBytes(settings.maxBytes)}.`
+        : error;
+      setUploadError(type, errorPath, message);
+      return;
+    }
+
+    updateNestedState(path, processedFile);
+    if (type === "animal") delete applicationState.errors.animals?.[errorPath];
+    else delete applicationState.errors.experienceUpload;
+  } catch {
+    if (operation === uploadOperation) setUploadError(type, errorPath, "This file could not be processed. Choose a different file.");
+  } finally {
+    if (operation === uploadOperation) {
+      applicationState.isLoading = false;
+      applicationState.loadingMessage = "";
+      renderCurrentStep();
+    }
+  }
+}
+
+function setUploadError(type, path, message) {
+  setErrors(type === "animal" ? { animals: { [path]: message } } : { experienceUpload: message });
+}
+
+function formatBytes(bytes) {
+  return bytes >= 1_000_000 ? `${Math.round(bytes / 1_000_000)} MB` : `${Math.round(bytes / 1_000)} KB`;
 }
 
 function removeFile(path) {
+  uploadOperation += 1;
   updateNestedState(path, null);
   if (path === "uploads.experience") delete applicationState.errors.experienceUpload;
   if (path.startsWith("uploads.animals.")) delete applicationState.errors.animals?.[path.split(".").pop()];
