@@ -4,7 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import multer from "multer";
-import { readConfiguration, writeCommunities, writeWebhook } from "../lib/config-store.js";
+import { readConfiguration, writeConfiguration, writeWebhook } from "../lib/config-store.js";
+import { composeCommunity, validateConfigDocument, formatProblem } from "../lib/config-schema.js";
 import { MAX_UPLOAD_BYTES, MAX_TOTAL_UPLOAD_BYTES, MAX_UPLOAD_FILES } from "../lib/upload-policy.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -23,9 +24,9 @@ app.get("/api/config", async (req, res, next) => {
   try {
     const id = cleanIdentifier(req.query.community);
     const configuration = await readConfiguration();
-    const community = configuration.communities[id];
-    if (!community || community.active === false) return sendError(res, 404, "The selected community does not exist.");
-    res.json({ community: publicCommunity(id, community) });
+    const community = composeCommunity(configuration.document, id);
+    if (!community) return sendError(res, 404, "The selected community does not exist.");
+    res.json({ community });
   } catch (error) { next(error); }
 });
 
@@ -38,17 +39,42 @@ app.post("/api/admin/login", async (req, res) => {
 app.post("/api/admin/logout", (req, res) => { res.setHeader("Set-Cookie", `${ADMIN_COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict${process.env.NODE_ENV === "production" ? "; Secure" : ""}`); res.json({ authenticated: false }); });
 app.get("/api/admin/session", requireAdmin, (_req, res) => res.json({ authenticated: true }));
 app.get("/api/admin/config", requireAdmin, async (_req, res, next) => {
-  try { const c = await readConfiguration(); const communities = Object.fromEntries(Object.entries(c.communities).map(([id, community]) => { const copy = structuredClone(community); delete copy.webhook; return [id, copy]; })); res.json({ communities, revision: c.revision, updatedAt: c.updatedAt, webhookConfigured: c.webhookConfigured }); } catch (error) { next(error); }
+  try {
+    const c = await readConfiguration();
+    res.json({
+      schemaVersion: c.schemaVersion,
+      communities: c.communities,
+      templates: c.templates,
+      revision: c.revision,
+      updatedAt: c.updatedAt,
+      webhookConfigured: c.webhookConfigured
+    });
+  } catch (error) { next(error); }
 });
 app.put("/api/admin/config", requireAdmin, async (req, res, next) => {
   try {
     const request = validateAdminWriteRequest(req.body);
     if (!request.valid) return res.status(400).json({ message: "The configuration request is invalid.", code: "CONFIG_REQUEST_INVALID", fields: request.errors });
-    const communities = Object.fromEntries(Object.entries(request.communities).map(([id, community]) => { const copy = structuredClone(community); delete copy.webhook; return [id, copy]; }));
-    const result = await writeCommunities(communities, request.revision);
+    const result = await writeConfiguration(request.document, request.revision);
     if (result.conflict) return sendError(res, 409, "This configuration changed elsewhere. Reload it before saving.");
-    if (!result.ok) return res.status(400).json({ message: "The configuration is invalid.", code: "CONFIG_VALIDATION_FAILED", fields: result.errors });
+    if (!result.ok) return res.status(400).json({ message: "The configuration is invalid.", code: "CONFIG_VALIDATION_FAILED", fields: result.errors.map(formatProblem) });
     res.json({ saved: true, revision: result.revision });
+  } catch (error) { next(error); }
+});
+app.get("/api/admin/config/export", requireAdmin, async (_req, res, next) => {
+  try {
+    const c = await readConfiguration();
+    res.json({ schemaVersion: c.schemaVersion, communities: c.communities, templates: c.templates });
+  } catch (error) { next(error); }
+});
+app.post("/api/admin/config/import", requireAdmin, async (req, res, next) => {
+  try {
+    const request = validateAdminWriteRequest(req.body);
+    if (!request.valid) return res.status(400).json({ message: "The import request is invalid.", code: "CONFIG_IMPORT_INVALID", fields: request.errors });
+    const result = await writeConfiguration(request.document, request.revision);
+    if (result.conflict) return sendError(res, 409, "This configuration changed elsewhere. Reload it before importing.");
+    if (!result.ok) return res.status(400).json({ message: "The configuration is invalid.", code: "CONFIG_IMPORT_INVALID", fields: result.errors.map(formatProblem) });
+    res.json({ imported: true, revision: result.revision });
   } catch (error) { next(error); }
 });
 app.put("/api/admin/discord", requireAdmin, async (req, res, next) => {
@@ -68,8 +94,8 @@ app.post("/api/application", (req, res, next) => upload.any()(req, res, (error) 
   try {
     const configuration = await readConfiguration();
     const communityId = cleanIdentifier(req.body?.communityId);
-    const community = configuration.communities[communityId];
-    if (!community || community.active === false) return sendError(res, 404, "The selected community does not exist.");
+    const community = composeCommunity(configuration.document, communityId);
+    if (!community) return sendError(res, 404, "The selected community does not exist.");
     const payload = parseJson(req.body?.application);
     if (!payload) return sendError(res, 400, "The application data is not valid.");
     const validation = validateApplication(payload, community);
@@ -100,12 +126,22 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 function publicCommunity(id, community) { const copy = structuredClone(community); delete copy.webhook; delete copy.active; return { ...copy, id }; }
 function validateAdminWriteRequest(body) {
   const errors = [];
-  if (!body || typeof body !== "object" || Array.isArray(body)) errors.push("The request body must be an object.");
-  const communities = body && typeof body === "object" && !Array.isArray(body) ? body.communities : undefined;
-  if (!communities || typeof communities !== "object" || Array.isArray(communities)) errors.push("communities must be an object containing community IDs.");
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    errors.push("The request body must be an object.");
+  }
+  const document = body && typeof body === "object" && !Array.isArray(body)
+    ? body.document
+    : undefined;
+  if (!document || typeof document !== "object" || Array.isArray(document)) {
+    errors.push("document must be a canonical configuration object.");
+  }
   const revision = validateAdminRevision(body);
   errors.push(...revision.errors);
-  return errors.length ? { valid: false, errors } : { valid: true, communities, revision: revision.revision };
+  if (errors.length) return { valid: false, errors };
+  const schemaErrors = validateConfigDocument(document).map(formatProblem);
+  return schemaErrors.length
+    ? { valid: false, errors: schemaErrors }
+    : { valid: true, document: structuredClone(document), revision: revision.revision };
 }
 function validateAdminRevision(body) {
   if (!body || typeof body !== "object" || Array.isArray(body) || !Object.prototype.hasOwnProperty.call(body, "revision")) return { valid: false, errors: ["revision must be a finite nonnegative integer."] };

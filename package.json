@@ -6,7 +6,7 @@
   "description": "A secure, JSON-driven community application wizard.",
   "scripts": {
     "start": "node server/index.js",
-    "check": "node --check server/index.js && node --check lib/config-store.js && node --check lib/config-validation.js && node --check js/app.js && node --check js/captcha.js && node --check js/config.js && node --check js/image-compression.js && node --check js/state.js && node --check js/ui.js && node --check js/validation.js && node --check config-builder/builder.js",
+    "check": "node --check server/index.js && node --check lib/config-store.js && node --check lib/config-schema.js && node --check lib/config-validation.js && node --check js/app.js && node --check js/captcha.js && node --check js/config.js && node --check js/image-compression.js && node --check js/state.js && node --check js/ui.js && node --check js/validation.js && node --check config-builder/builder.js",
     "test": "node --test"
   },
   "engines": {

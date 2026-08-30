@@ -28,7 +28,30 @@ export function setBranding(community) {
   logo.alt = `${community.name} logo`;
   name.textContent = community.name;
   footer.textContent = community.footer;
+  applyTheme(community.theme?.accent);
   document.title = `${community.name} application`;
+}
+
+function applyTheme(accent) {
+  if (!/^#[0-9a-f]{6}$/i.test(String(accent || ""))) return;
+  const root = document.documentElement;
+  const rgb = hexToRgb(accent);
+  root.style.setProperty("--color-primary", accent);
+  root.style.setProperty("--color-primary-deep", mix(rgb, 0.78));
+  root.style.setProperty("--color-primary-soft", mix(rgb, 0.90));
+  root.style.setProperty("--focus-ring", `0 0 0 4px ${rgba(rgb, 0.2)}`);
+}
+
+function hexToRgb(hex) {
+  return { r: Number.parseInt(hex.slice(1, 3), 16), g: Number.parseInt(hex.slice(3, 5), 16), b: Number.parseInt(hex.slice(5, 7), 16) };
+}
+
+function mix(rgb, amount) {
+  return `rgb(${Math.round(rgb.r * amount)}, ${Math.round(rgb.g * amount)}, ${Math.round(rgb.b * amount)})`;
+}
+
+function rgba(rgb, alpha) {
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
 }
 
 export function renderProgress(currentStep) {
@@ -105,6 +128,15 @@ function getStepCopy(community, key, fallback) {
   };
 }
 
+function getCompletionCopy(community, key, fallback) {
+  const configured = community.completion?.[key];
+  return {
+    eyebrow: configured?.eyebrow || fallback.eyebrow,
+    title: configured?.title || fallback.title,
+    description: configured?.description || fallback.description
+  };
+}
+
 function renderLoadingStep(state) {
   const message = state.loadingMessage || "Preparing the next step…";
   return `<div class="step-view loading-screen" role="status" aria-live="polite">
@@ -117,8 +149,8 @@ function renderLoadingStep(state) {
 
 function renderPersonalStep(community, state) {
   const copy = getStepCopy(community, "personal", {
-    eyebrow: community.role?.title || "Community application",
-    title: community.role?.description || "Let’s get to know you",
+    eyebrow: "Community application",
+    title: "Let’s get to know you",
     description: "Start with a few details so the community team knows who to contact."
   });
 
@@ -154,8 +186,8 @@ function renderCenterStep(community, state) {
 
 function renderStoryStep(community, state) {
   const copy = getStepCopy(community, "story", {
-    eyebrow: community.secondaryRole?.title || "Your story",
-    title: community.secondaryRole?.description || "Tell the team what brings you here",
+    eyebrow: "Your story",
+    title: "Tell the team what brings you here",
     description: "A thoughtful answer helps us understand how you’d like to contribute."
   });
 
@@ -196,9 +228,9 @@ function renderExperienceUploadStep(community, state) {
 
 function renderVerificationIntroStep(community, state) {
   const copy = getStepCopy(community, "verification", {
-    eyebrow: community.almostThere?.eyebrow || "Almost there",
-    title: community.almostThere?.title || "Let’s make sure you’re human",
-    description: community.almostThere?.description || "A few quick checks help us keep applications safe and welcoming for everyone."
+    eyebrow: "Almost there",
+    title: "Let’s make sure you’re human",
+    description: "A few quick checks help us keep applications safe and welcoming for everyone."
   });
   const checkboxes = community.instructions.checkboxes.map((item) => {
     const checked = Boolean(state.agreements[item.id]);
@@ -267,20 +299,20 @@ function reviewFieldValue(id, community, state) {
 }
 
 function renderSuccessStep(community, state) {
-  const copy = getStepCopy(community, "success", {
-    eyebrow: community.success?.eyebrow || community.success?.title || "Application received",
-    title: community.success?.title || "Application received",
-    description: community.success?.description || "Your application was received for manual review."
+  const copy = getCompletionCopy(community, "success", {
+    eyebrow: "Application received",
+    title: "Application received",
+    description: "Your application was received for manual review."
   });
 
   return `<div class="step-view success-layout"><div><div class="success-mark" aria-hidden="true">✓</div><p class="eyebrow">${escapeHtml(copy.eyebrow)}</p><h1 class="step-title" id="page-heading">${escapeHtml(copy.title)}</h1><p class="step-description">${escapeHtml(copy.description)}</p>${state.applicationId ? `<p class="field-hint">Reference: ${escapeHtml(state.applicationId)}</p>` : ""}<div class="step-actions"><button class="button success-button" type="button" data-action="show-next">${escapeHtml(community.buttons.next)}</button></div></div></div>`;
 }
 
 function renderNextStep(community) {
-  const copy = getStepCopy(community, "next", {
-    eyebrow: community.next?.eyebrow || community.next?.title || "What’s next?",
-    title: community.next?.title || "What’s next?",
-    description: community.next?.description || "The community team will contact you if they need anything else."
+  const copy = getCompletionCopy(community, "next", {
+    eyebrow: "What’s next?",
+    title: "What’s next?",
+    description: "The community team will contact you if they need anything else."
   });
 
   return `<div class="step-view next-layout"><div><div class="next-icon" aria-hidden="true">${arrowIcon()}</div><p class="eyebrow">${escapeHtml(copy.eyebrow)}</p><h1 class="step-title" id="page-heading">${escapeHtml(copy.title)}</h1><p class="step-description">${escapeHtml(copy.description)}</p></div></div>`;

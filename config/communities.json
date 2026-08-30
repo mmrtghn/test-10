@@ -2,7 +2,7 @@
   "communities": {
     "community-a": {
       "name": "TESTVERSION",
-      "logo": "assets/logos/community.svg",
+      "logo": "assets/logos/harborview.svg",
       "brandMark": "T",
       "reviewFields": [
         {
