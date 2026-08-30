@@ -9,6 +9,7 @@
         "server/**",
         "lib/**",
         "config/**",
+        "config-builder/**",
         "index.html",
         "css/**",
         "js/**",
