@@ -18,6 +18,8 @@
   }],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/index.js" },
+    { "src": "/(config|server|lib|migration)(/.*)?", "dest": "/api/index.js" },
+    { "src": "/(package(?:-lock)?\\.json|\\.env(?:\\.|$))", "dest": "/api/index.js" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/api/index.js" }
   ]
