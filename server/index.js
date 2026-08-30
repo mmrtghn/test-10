@@ -42,20 +42,22 @@ app.get("/api/admin/config", requireAdmin, async (_req, res, next) => {
 });
 app.put("/api/admin/config", requireAdmin, async (req, res, next) => {
   try {
-    const communities = Object.fromEntries(Object.entries(req.body?.communities || {}).map(([id, community]) => { const copy = structuredClone(community); delete copy.webhook; return [id, copy]; }));
-    const revision = Number(req.body?.revision);
-    const result = await writeCommunities(communities, revision);
+    const request = validateAdminWriteRequest(req.body);
+    if (!request.valid) return res.status(400).json({ message: "The configuration request is invalid.", code: "CONFIG_REQUEST_INVALID", fields: request.errors });
+    const communities = Object.fromEntries(Object.entries(request.communities).map(([id, community]) => { const copy = structuredClone(community); delete copy.webhook; return [id, copy]; }));
+    const result = await writeCommunities(communities, request.revision);
     if (result.conflict) return sendError(res, 409, "This configuration changed elsewhere. Reload it before saving.");
-    if (!result.ok) return res.status(400).json({ message: "The configuration is invalid.", fields: result.errors });
+    if (!result.ok) return res.status(400).json({ message: "The configuration is invalid.", code: "CONFIG_VALIDATION_FAILED", fields: result.errors });
     res.json({ saved: true, revision: result.revision });
   } catch (error) { next(error); }
 });
 app.put("/api/admin/discord", requireAdmin, async (req, res, next) => {
   try {
-    const webhook = String(req.body?.webhook ?? "").trim();
-    const revision = Number(req.body?.revision);
+    const request = validateAdminRevision(req.body);
+    if (!request.valid) return res.status(400).json({ message: "The configuration request is invalid.", code: "CONFIG_REQUEST_INVALID", fields: request.errors });
+    const webhook = String(req.body.webhook ?? "").trim();
     if (webhook && !validWebhook(webhook)) return sendError(res, 400, "Enter an approved HTTPS Discord webhook URL.");
-    const result = await writeWebhook(webhook, revision);
+    const result = await writeWebhook(webhook, request.revision);
     if (result.conflict) return sendError(res, 409, "This configuration changed elsewhere. Reload it before saving.");
     res.json({ saved: true, revision: result.revision, webhookConfigured: Boolean(webhook) });
   } catch (error) { next(error); }
@@ -95,7 +97,22 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   app.listen(PORT, () => console.log(`Community application available at http://localhost:${PORT}/?community=community-a`));
 }
 
-function publicCommunity(id, community) { const copy = structuredClone(community); delete copy.webhook; delete copy.active; return { id, ...copy }; }
+function publicCommunity(id, community) { const copy = structuredClone(community); delete copy.webhook; delete copy.active; return { ...copy, id }; }
+function validateAdminWriteRequest(body) {
+  const errors = [];
+  if (!body || typeof body !== "object" || Array.isArray(body)) errors.push("The request body must be an object.");
+  const communities = body && typeof body === "object" && !Array.isArray(body) ? body.communities : undefined;
+  if (!communities || typeof communities !== "object" || Array.isArray(communities)) errors.push("communities must be an object containing community IDs.");
+  const revision = validateAdminRevision(body);
+  errors.push(...revision.errors);
+  return errors.length ? { valid: false, errors } : { valid: true, communities, revision: revision.revision };
+}
+function validateAdminRevision(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body) || !Object.prototype.hasOwnProperty.call(body, "revision")) return { valid: false, errors: ["revision must be a finite nonnegative integer."] };
+  const revision = body.revision;
+  if (typeof revision !== "number" || !Number.isSafeInteger(revision) || revision < 0) return { valid: false, errors: ["revision must be a finite nonnegative integer."] };
+  return { valid: true, revision, errors: [] };
+}
 function parseCookies(value = "") { return Object.fromEntries(value.split(";").map((part) => part.trim().split("=")).filter(([k, v]) => k && v).map(([k, v]) => [k, decodeURIComponent(v)])); }
 function signCookie(data) { const body = Buffer.from(JSON.stringify(data)).toString("base64url"); return `${body}.${crypto.createHmac("sha256", requiredEnv("ADMIN_SESSION_SECRET")).update(body).digest("base64url")}`; }
 function verifyCookie(value) { try { const [body, signature] = String(value).split("."); const expected = crypto.createHmac("sha256", requiredEnv("ADMIN_SESSION_SECRET")).update(body).digest("base64url"); if (!body || !signature || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return false; return JSON.parse(Buffer.from(body, "base64url").toString()).exp > Date.now(); } catch { return false; } }
